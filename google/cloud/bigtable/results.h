@@ -54,6 +54,45 @@ class ResultSourceInterface {
   Metadata() = 0;
 };
 
+/**
+ * Represents the stream of `QueryRow`s returned from
+ * `bigtable::Table::ReadRows()`.
+ *
+ * This is a range defined by the [Input Iterators][input-iterator] returned
+ * from its `begin()` and `end()` members. Callers may directly iterate the
+ * `RowStream` instance, which will return a sequence of `StatusOr<QueryRow>`
+ * objects.
+ *
+ * For convenience, callers may wrap instances in a `StreamOf<std::tuple<...>>`
+ * object, which will automatically parse each `QueryRow` into a `std::tuple`
+ * with the specified types.
+ *
+ * [input-iterator]: https://en.cppreference.com/w/cpp/named_req/InputIterator
+ */
+class RowStream {
+ public:
+  RowStream() = default;
+  explicit RowStream(std::unique_ptr<ResultSourceInterface> source)
+      : source_(std::move(source)) {}
+
+  // This class is movable but not copyable.
+  RowStream(RowStream&&) = default;
+  RowStream& operator=(RowStream&&) = default;
+
+  /// Returns a `QueryRowStreamIterator` defining the beginning of this range.
+  QueryRowStreamIterator begin() {
+    return QueryRowStreamIterator(
+        [this]() mutable { return source_->NextRow(); });
+  }
+
+  /// Returns a `QueryRowStreamIterator` defining the end of this range.
+  // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+  QueryRowStreamIterator end() { return {}; }
+
+ private:
+  std::unique_ptr<ResultSourceInterface> source_;
+};
+
 GOOGLE_CLOUD_CPP_INLINE_NAMESPACE_END
 }  // namespace bigtable
 }  // namespace cloud
