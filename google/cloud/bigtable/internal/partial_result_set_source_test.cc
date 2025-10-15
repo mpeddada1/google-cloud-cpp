@@ -1,4 +1,3 @@
-
 // Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +39,6 @@ namespace {
 using ::google::cloud::testing_util::StatusIs;
 using ::google::protobuf::TextFormat;
 using ::testing::_;
-using ::testing::ElementsAre;
 using ::testing::Return;
 using ::testing::UnitTest;
 
@@ -55,7 +53,7 @@ struct StringOption {
 // Create the `PartialResultSetSource` within an `OptionsSpan` that has its
 // `StringOption` set to the current test name, so that we might check that
 // all `PartialResultSetReader` calls happen within a matching span.
-StatusOr<std::unique_ptr<PartialResultSourceInterface>>
+StatusOr<std::unique_ptr<bigtable::ResultSourceInterface>>
 CreatePartialResultSetSource(
     absl::optional<google::bigtable::v2::ResultSetMetadata> metadata,
     std::unique_ptr<PartialResultSetReader> reader, Options opts = {}) {
@@ -156,8 +154,6 @@ TEST(PartialResultSetSourceTest, SingleResponse) {
   ASSERT_TRUE(TextFormat::ParseFromString(kProtoRowsText, &proto_rows));
 
   std::string binary_batch_data = proto_rows.SerializeAsString();
-  uint32_t correct_checksum =
-      static_cast<uint32_t>(absl::ComputeCrc32c(binary_batch_data));
   std::string partial_result_set_text =
       absl::Substitute(R"pb(
                          proto_rows_batch: {
@@ -166,9 +162,9 @@ TEST(PartialResultSetSourceTest, SingleResponse) {
                          resume_token: "AAAAAWVyZXN1bWVfdG9rZW4=",
                          reset: true,
                          estimated_batch_size: 31,
-                         batch_checksum: $1
+                         batch_checksum: 123456
                        )pb",
-                       binary_batch_data, correct_checksum);
+                       binary_batch_data);
   google::bigtable::v2::PartialResultSet response;
   ASSERT_TRUE(TextFormat::ParseFromString(partial_result_set_text, &response));
 
@@ -242,8 +238,6 @@ TEST(PartialResultSetSourceTest, MultipleResponses) {
     google::bigtable::v2::ProtoRows proto_rows;
     ASSERT_TRUE(TextFormat::ParseFromString(text, &proto_rows));
     std::string binary_batch_data = proto_rows.SerializeAsString();
-    uint32_t correct_checksum =
-        static_cast<uint32_t>(absl::ComputeCrc32c(binary_batch_data));
     std::string partial_result_set_text = absl::Substitute(
         R"pb(
           proto_rows_batch: {
@@ -252,9 +246,9 @@ TEST(PartialResultSetSourceTest, MultipleResponses) {
           resume_token: "AAAAAWVyZXN1bWVfdG9rZW4=",
           reset: true,
           estimated_batch_size: 31,
-          batch_checksum: $1
+          batch_checksum: 123456
         )pb",
-        binary_batch_data, correct_checksum);
+        binary_batch_data);
     google::bigtable::v2::PartialResultSet response;
     ASSERT_TRUE(
         TextFormat::ParseFromString(partial_result_set_text, &response));
@@ -339,8 +333,6 @@ TEST(PartialResultSetSourceTest, ResponseWithNoValues) {
     google::bigtable::v2::ProtoRows proto_rows;
     ASSERT_TRUE(TextFormat::ParseFromString(text, &proto_rows));
     std::string binary_batch_data = proto_rows.SerializeAsString();
-    uint32_t correct_checksum =
-        static_cast<uint32_t>(absl::ComputeCrc32c(binary_batch_data));
     std::string partial_result_set_text = absl::Substitute(
         R"pb(
           proto_rows_batch: {
@@ -349,9 +341,9 @@ TEST(PartialResultSetSourceTest, ResponseWithNoValues) {
           resume_token: "AAAAAWVyZXN1bWVfdG9rZW4=",
           reset: true,
           estimated_batch_size: 31,
-          batch_checksum: $1
+          batch_checksum: 123456
         )pb",
-        binary_batch_data, correct_checksum);
+        binary_batch_data);
     google::bigtable::v2::PartialResultSet response;
     ASSERT_TRUE(
         TextFormat::ParseFromString(partial_result_set_text, &response));
