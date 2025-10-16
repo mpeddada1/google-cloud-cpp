@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "google/cloud/spanner/internal/partial_result_set_resume.h"
+#include "google/cloud/bigtable/internal/partial_result_set_resume.h"
 #include <thread>
 
 namespace google {
